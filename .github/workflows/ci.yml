@@ -41,20 +41,24 @@ jobs:
   deploy:
     name: Deploy
     needs: [test, build]
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && secrets.RENDER_DEPLOY_HOOK_URL != ''
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
         uses: actions/checkout@v4
 
       - name: Deploy via Render
+        if: vars.PUBLIC_URL != ''
         run: |
           curl -s -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}"
+        continue-on-error: true
 
       - name: Wait for deployment
+        if: vars.PUBLIC_URL != ''
         run: sleep 45
 
       - name: Smoke test
+        if: vars.PUBLIC_URL != ''
         run: |
           curl -fsS "${{ vars.PUBLIC_URL }}/healthz" || exit 1
           echo "Deploy successful"
