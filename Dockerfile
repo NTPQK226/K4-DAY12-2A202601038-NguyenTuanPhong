@@ -30,4 +30,4 @@ HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
     CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/healthz').read()" || exit 1
 
 # Read PORT from env (cloud platforms set PORT dynamically)
-CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]
+CMD ["python", "-c", "import os; import uvicorn; port = int(os.environ.get('PORT', 8000)); uvicorn.run('app.main:app', host='0.0.0.0', port=port)"]
