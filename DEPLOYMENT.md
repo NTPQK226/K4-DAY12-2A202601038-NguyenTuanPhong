@@ -10,17 +10,17 @@
 
 | Mục | Nội dung |
 |-----|----------|
-| Họ và tên | (điền họ tên) |
-| Mã học viên | (điền mã học viên) |
-| Repo | (điền link repo K4-DAY12-...) |
+| Họ và tên | Nguyễn Tuấn Phong |
+| Mã học viên | 2A202601038 |
+| Repo | https://github.com/NTPQK226/K4-DAY12-2A202601038-NguyenTuanPhong |
 
 ## Service
 
 | Mục | Nội dung |
 |-----|----------|
-| Public URL | https://TODO-thay-bang-url-that.up.railway.app |
-| Platform | Railway / Render / Cloud Run — (điền platform bạn dùng) |
-| Ngày deploy | (điền ngày) |
+| Public URL | https://day12-chat-boi6.onrender.com |
+| Platform | Render |
+| Ngày deploy | 2026-08-10 |
 
 ## Biến Môi Trường Đã Set Trên Cloud
 
@@ -29,8 +29,8 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 | Biến | Đã set | Ghi chú |
 |------|--------|---------|
 | `PORT` | ✅ | platform tự gán |
-| `API_TOKEN` | ✅ | đặt trong dashboard, không nằm trong repo |
-| `REDIS_URL` | ✅ | (điền: Redis add-on của platform / Upstash / ...) |
+| `API_TOKEN` | ✅ | đặt trong dashboard Render khi tạo Blueprint |
+| `REDIS_URL` | ✅ | Redis add-on của Render (tạo tự động qua render.yaml) |
 | `BUCKET_CAPACITY` | ✅ | 10 |
 | `REFILL_PER_MINUTE` | ✅ | 10 |
 | `DAILY_BUDGET_USD` | ✅ | 1.0 |
@@ -38,30 +38,28 @@ Ghi tên biến và **nguồn giá trị**, không ghi giá trị:
 
 ## Lệnh Kiểm Tra
 
-Thay `<URL>` bằng Public URL ở trên:
-
 ```bash
-# 1. Liveness — mong đợi 200 {"status":"ok"}
-curl -i <URL>/healthz
+# 1. Liveness
+curl -i https://day12-chat-boi6.onrender.com/healthz
 
-# 2. Readiness — mong đợi 200 {"status":"ready"} (đã nối được Redis)
-curl -i <URL>/readyz
+# 2. Readiness
+curl -i https://day12-chat-boi6.onrender.com/readyz
 
-# 3. Không có token — mong đợi 401 kèm header WWW-Authenticate
-curl -i -X POST <URL>/chat \
+# 3. Không token
+curl -i -X POST https://day12-chat-boi6.onrender.com/chat \
   -H "Content-Type: application/json" \
   -d '{"message":"Hello"}'
 
-# 4. Có token — mong đợi 200 kèm câu trả lời
-curl -i -X POST <URL>/chat \
+# 4. Có token
+curl -i -X POST https://day12-chat-boi6.onrender.com/chat \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $API_TOKEN" \
   -H "X-Client-Id: sv-test" \
   -d '{"message":"Deploy là gì?"}'
 
-# 5. Rate limit — gọi 15 lần, những lần cuối phải trả 429
+# 5. Rate limit
 for i in $(seq 1 15); do
-  curl -s -o /dev/null -w "%{http_code} " -X POST <URL>/chat \
+  curl -s -o /dev/null -w "%{http_code} " -X POST https://day12-chat-boi6.onrender.com/chat \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $API_TOKEN" \
     -H "X-Client-Id: sv-test" \
@@ -71,32 +69,65 @@ done; echo
 
 ## Kết Quả Chạy Thật
 
-Dán output của các lệnh trên vào đây:
-
 ```
-(điền output)
+(.venv) PS D:\AI20K\K4-DAY12-2A202601038-NguyenTuanPhong> python -c "                
+>> import urllib.request, urllib.parse, json
+>> 
+>> URL = 'https://day12-chat-boi6.onrender.com'
+>> token = 'zpXPwI8TEr_jz9DKO8Zq_qQgZXc-73bzdzfUTztwyPA'
+>> 
+>> def do_request(url, data=None, auth=False):
+>>     body = json.dumps(data).encode() if data else None
+>>     headers = {'Content-Type': 'application/json'}
+>>     if auth:
+>>         headers['Authorization'] = 'Bearer ' + token
+>>         headers['X-Client-Id'] = 'sv-test'
+>>     req = urllib.request.Request(url, data=body, headers=headers)
+>>     try:
+>>         res = urllib.request.urlopen(req)
+>>         return res.status, res.read().decode()
+>>     except urllib.request.HTTPError as e:
+>>         return e.code, e.read().decode()
+>> 
+>> # 1. healthz
+>> print('1. healthz:')
+>> code, body = do_request(URL + '/healthz')
+>> print(code, body)
+>> 
+>> # 2. readyz
+>> print('2. readyz:')
+>> code, body = do_request(URL + '/readyz')
+>> print(code, body)
+>> 
+>> # 3. Khong co token -> 401
+>> print('3. Khong co token:')
+>> code, _ = do_request(URL + '/chat', {'message': 'Hello'})
+>> print(code, '(mong 401)')
+>> 
+>> # 4. Co token -> 200
+>> print('4. Co token:')
+>> code, body = do_request(URL + '/chat', {'message': 'Deploy la gi?'}, auth=True)
+>> print(code, body[:150] if len(body) > 150 else body)
+>> 
+>> # 5. Rate limit - 15 lan
+>> print('5. Rate limit (mong 14x200 + 429):')
+>> for i in range(15):
+>>     code, _ = do_request(URL + '/chat', {'message': 'test'}, auth=True)
+>>     print(code, end=' ')
+>> print()
+>> "
+1. healthz:
+200 {"status":"ok","service":"day12-chat-service","version":"1.0.0"}
+2. readyz:
+200 {"status":"ready","redis":true}
+3. Khong co token:
+401 (mong 401)
+4. Co token:
+200 {"reply":"Ngắn gọn: Deploy la gi phụ thuộc vào ba yếu tố — cấu hình qua biến môi trường, health check để orchestrator biết trạng thái, và giới hạn tài
+5. Rate limit (mong 14x200 + 429):
+200 200 200 200 200 200 200 200 200 429 429 429 429 200 429
 ```
 
 ## Ảnh Chụp Màn Hình
 
-Đặt ảnh trong thư mục `screenshots/`:
-
-- `screenshots/dashboard.png` — trang quản lý service trên platform
-- `screenshots/healthz.png` — kết quả gọi `/healthz` từ trình duyệt hoặc curl
-
----
-
-## Nếu Dùng Phương Án Dự Phòng
-
-Không đăng ký được tài khoản cloud? Vẫn nộp được bài, nhưng CP5 tối đa 60% điểm:
-
-1. Đặt `LOCAL_FALLBACK=true` trong `.env`
-2. Chạy `docker compose up -d` rồi kiểm tra `docker compose ps`
-3. Chụp màn hình vào `screenshots/`
-4. Chạy `pytest tests/test_cp5.py -v` — bộ test sẽ tự chuyển sang kiểm tra
-   `http://localhost:8000`
-5. Ghi rõ lý do không deploy được vào phần dưới đây:
-
-```
-(điền lý do nếu dùng phương án dự phòng, ngược lại xóa mục này)
-```
+Ảnh dashboard Render trong thư mục `screenshots/`.
